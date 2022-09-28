@@ -198,11 +198,11 @@ _start:
 
         ldrb w7, [x6, x4]
         cmp x4, x7
-        beq unit_cycle           // skip unit cycles
+        beq unit_cycle           // пропускаем единичные циклы
 
-        strb w4, [x6, x4] // set to unit cycle (unnecessary)
+        strb w4, [x6, x4] // ставим единичный цикл (unnecessary)
 
-        mov x8, x4
+        mov x8, x4 // копируем первый столбец цикла во временный массив
         mov x9, 0 // i2
         50:
             cmp x9, x1 // i2 >= rows
@@ -214,7 +214,7 @@ _start:
             b 50b
         51:
         mov x8, x4
-
+// идем по циклу и копируем текущий столбец в предыдущий
         cycle:
             cmp x7, x4
             beq end_cycle
@@ -236,11 +236,12 @@ _start:
             mov x8, x7 // x8 = x9 -- the freed row
 
             ldrb w10, [x6, x7]
-            strb w7, [x6, x7] // set to unit cycle
+            strb w7, [x6, x7] // ставим единичный цикл чтобы потом пропустить
             mov x7, x10
             b cycle
         end_cycle:
 
+        // копируем временный массив в последний столбец
         mov x9, xzr
         50:
             cmp x9, x1 // i2 >= rows
