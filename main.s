@@ -3,22 +3,22 @@
 
     .data
 
-    .balign 8
+    .balign 8 // байт
 matrix:
     .8byte 1, 2, -5
     .8byte 1, 1, 0
     .8byte 8, 3, 1
 
 size:
-    .set cols, 3
-    .set rows, 3
-    .byte rows, cols
+    .set cols, 3 // #define cols = 3
+    .set rows, 3 // #define rows = 3
+    .byte rows, cols // byte size[2] = {rows, cols};
 
     .bss
     .balign 8
 temp_values:
-    .if cols > rows
-        .skip 8*cols
+    .if cols > rows // ny > nx
+        .skip 8*cols // выделение памяти для массива при сортировке
     .else
         .skip 8*rows
     .endif
@@ -32,35 +32,36 @@ temp_index:
     .type _start, %function
 _start:
     adr x0, size
-    ldrb w1, [x0]     // rows
-    ldrb w2, [x0, #1] // cols
-    adr x0, matrix
+    ldrb w1, [x0]     // загружаем size[0] в w1
+    ldrb w2, [x0, #1] // загружаем size[1] в w1
+    adr x0, matrix // адрес матрицы
 
-    mov x3, xzr       // x
+    mov x3, xzr       // столбец = 0
     adr x5, temp_values
     adr x6, temp_index
     
     sum_cols:
-        cmp x3, x2
-        beq end_sum_cols
-        strb w3, [x6, x3] // index[x] = x
+        cmp x3, x2 // сравниваем х3 и х2 --- столбец < cols
+        beq end_sum_cols // branch equal - если i == cols то перехожу в end_sum_cols
+        strb w3, [x6, x3] // index[x] = x // записываю *(х6 + х3) = w3 
 
-        ldr x7, [x0, x3, lsl 3] // sum
-        mov x4, #1       // y
+        ldr x7, [x0, x3, lsl 3] // sum // загружаю в х7 из х0+х3*2^3 -- matrix[строка]
+        mov x4, #1       // столбец cols
         add x8, x3, x2   // matrix index = x + cols
 
+        // максимум в столбце
         sum_col:
-            cmp x4, x1
-            beq end_sum_col
+            cmp x4, x1 // столбец < cols
+            beq end_sum_col // если столбец == cols, переход к end_sum_col 
 
-            ldr x9, [x0, x8, lsl 3]
-            add x7, x7, x9
+            ldr x9, [x0, x8, lsl 3] // x9 = *(x0 + x8*2^3)
+            add x7, x7, x9 
 
             add x8, x8, x2   // i += cols
             add x4, x4, #1   // y += 1
             b sum_col
         end_sum_col:
-        str x7, [x5, x3, lsl 3] // sum_arr[x] = sum
+        str x7, [x5, x3, lsl 3] // sum_arr[x] = sum (x5 +x3*2^3)
 
         add x3, x3, #1   // x += 1
         b sum_cols
@@ -72,15 +73,15 @@ _start:
     sort:
         cmp x4, x2
         bge sorted // index == cols
-
+    // загружаем два соседних элемента
         ldr x8, [x5, x4, lsl 3] // a
         ldrb w10, [x6, x4]      // a_index
         add x12, x4, 1
         ldr x9, [x5, x12, lsl 3] // b
         ldrb w11, [x6, x12]      // b_index
 
-        cmp x8, x9
-        .ifdef reverse
+        cmp x8, x9 // сравниваем
+        .ifdef reverse // флаг при компиляции для сортировки по убыванию
         ble 1f // if a > b
         .else
         bge 1f // if a < b
